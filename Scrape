@@ -1,0 +1,59 @@
+import urllib.request
+import re
+import csv
+#import library to parse HTML from page
+from bs4 import BeautifulSoup
+
+#specifying page of interest
+wiki = "https://de.wikipedia.org/wiki/Liste_der_Stolpersteine_in_Berlin-Kreuzberg"
+#save the HTML of the site within the page variable
+page = urllib.request.urlopen(wiki)
+
+#parse data from "page" and save to new variable "soup"
+soup = BeautifulSoup(page, 'html.parser')
+
+#get this specific table from page
+right_table=soup.find('table', class_='wikitable sortable toptextcells')
+
+#Generate lists of columns with data want to extract
+rawnames=[]
+rawaddress=[]
+rawinfo=[]
+#html tag tr contains row
+for row in right_table.findAll("tr"):
+    #HTML tag td contains field with necessary infos
+    cells = row.findAll('td')
+    #Only extract table body not heading, returns lists
+    if len(cells)==6: 
+        #B contains Names
+        rawnames.append(cells[1])
+        #C contains Addresses
+        rawaddress.append(cells[2])
+        #F contains Information
+        rawinfo.append(cells[5])
+
+#function removes new line characters and angle brackets for every string item in list
+def refinestring(list):
+    #loop through list turning to pure text
+    refinedlist = [item.text for item in list]
+    return refinedlist
+
+#call function to tidy all lists
+Names = refinestring(rawnames)
+Addressrefined = refinestring(rawaddress)
+Informationrefined = refinestring(rawinfo)
+
+#removes extra address info in brackets from address field which makes it less legible for google maps
+Address = [re.sub(r'\(.*?\)', '', item) for item in Addressrefined]
+
+#removes footnote numbers in square brackets from information text
+Information = [re.sub(r'\[.*?\]', '', item) for item in Informationrefined]
+
+#zip lists together for printing to csv
+header = zip(["Name"], ["Address"], ["Information"])
+
+#create csv file, writing zipped lists in rows with headers
+with open('StolpersteineKreuzberg.csv', 'w') as f:
+    writer = csv.writer(f)
+    writer.writerows(header)
+    writer.writerows(zip(Names, Address, Information))
