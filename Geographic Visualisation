@@ -1,0 +1,75 @@
+import pandas as pd
+import folium
+from folium.plugins import MarkerCluster
+import googlemaps
+
+#insert personal key for googlemaps api
+gmaps = googlemaps.Client(key='XXX')
+
+df = pd.read_csv("StolpersteineKreuzberg.csv")
+
+#function for making on-printed dataframe of select group only
+def selectgroups(df, column, groupname):
+    #get all column values if groupname present
+    group = column.values == groupname
+    #return data as dataframe
+    return df[group]
+
+#call function above to create df for every group found in text analysis
+Jewish_Heritage = selectgroups(df, df['Jewish Heritage'], 'Jewish Heritage')
+Homosexual = selectgroups(df, df['Homosexual'], 'Homosexual')
+Resistance = selectgroups(df, df['Resistance'], 'Resistance')
+Health = selectgroups(df, df['Health'], 'Health')
+Journalist = selectgroups(df, df['Journalist'], 'Journalist')
+
+map1 = folium.Map(
+     #Gets average longitude and latitude and displays map centre at this point
+    location=[df['latitude'].mean(), 
+   df['longitude'].mean()],
+   #set tiles to none so can call tile class and add name as well as style
+    tiles=None,
+    zoom_start=14,
+)
+#need tilelayer for naming and set design of map here too
+folium.TileLayer('cartodbpositron', name='Stolpersteine in Kreuzberg').add_to(map1)
+
+#create groups of stones
+my_marker_cluster1 = MarkerCluster(name='All Stolpersteine').add_to(map1)
+my_marker_cluster2 = MarkerCluster(name='Jewish Heritage', show=False).add_to(map1)
+my_marker_cluster3 = MarkerCluster(name='Resistance', show=False).add_to(map1)
+my_marker_cluster4 = MarkerCluster(name='Homosexual', show=False).add_to(map1)
+my_marker_cluster5 = MarkerCluster(name='Health', show=False).add_to(map1)
+my_marker_cluster6 = MarkerCluster(name='Journalist', show=False).add_to(map1)
+
+#creates group of markers 
+def createmapcluster(dataframe, colour, marker_clusterx):
+#make circle markers from dataframe addresses
+    dataframe.apply(lambda row:folium.CircleMarker(
+        location=[row["latitude"], row["longitude"]], 
+        #popup hyperlink to display name and information site in new tab
+        popup='<a href="' + str(row["Source"]) + '" target="_blank">' + str(row["Name"]) + "</a>",
+        color=colour, 
+        #fill so marker can be clicked on for popup
+        fill=True).add_to(marker_clusterx), axis=1)
+    #add cluster to map as child
+    map1.add_child(marker_clusterx)
+    return
+
+#call on function to plot points for each person in each group
+allstones = createmapcluster(df, 'black', my_marker_cluster1)
+jewishstones = createmapcluster(Jewish_Heritage, 'yellow', my_marker_cluster2)
+resistancestones = createmapcluster(Resistance, 'red', my_marker_cluster3)
+homostones = createmapcluster(Homosexual, 'pink', my_marker_cluster4)
+healthstones = createmapcluster(Health, 'blue', my_marker_cluster5)
+journaliststones = createmapcluster(Journalist, 'green', my_marker_cluster6)
+
+#add layer control in top right hand corner of map
+folium.LayerControl().add_to(map1)
+
+#save map for viewing
+#map1.save("map.html")
+html_string = map1._repr_html_()
+print(html_string)
+
+#save csv, now with added location data
+df.to_csv('StolpersteineKreuzberg.csv')
