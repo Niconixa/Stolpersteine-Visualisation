@@ -1,0 +1,54 @@
+import re
+import pandas as pd
+
+#reads csv file as dataframe
+df = pd.read_csv("StolpersteineInfo.csv", delimiter=',')
+
+#makes info in column lowercase
+information = df.Information.str.lower()
+
+#keywords to search for
+Resistance_Keywords = ['kommunist', 'kpd', 'widerstand', 'antifaschist', 'uhrig', 'hitlergegner']
+Homosexual_Keywords = ['homo', 'sexu', 'schwul', 'neigung zu männer']
+Jewish_Keywords = ['jüdisch', 'jude', 'judin', 'jüdin', 'yad vashem', 'shoah', 'mischehe', 'theresienstadt', 'fabrikaktion', 'fabrik-aktion', 'palästina', 'riga', 'polenaktion', 'ghetto', 'getto']
+Journalist_Keywords = ['redakteur', 'journalist']
+Health_Keywords = ['pyschisch krank', 'geisteskrank', 'euthanasie', 'sanatorium', 'heilanstalt', 'psych']
+
+#set new columns which defaults results (no results) to blank with ""
+df["Jewish Heritage"] = ""
+df["Resistance"] = ""
+df["Homosexual"] = ""
+df["Health"] = ""
+df["Journalist"] = ""
+
+def searchinfo(keywords, column):
+	StoreIndices = []
+	# Loop through the information column
+	for index, info in information.iteritems():
+		# Check all the resistance keywords
+		for keyword in keywords:
+			# If nan skip
+			if info != info:
+				pass
+			else:
+				# Else if resistance keyword in the text then store the index
+				if keyword in info:
+					StoreIndices.append(index)
+	# Iterate through the initial dataframe
+	for index, items in df.iterrows():
+		# If index found then change the value to TRUE
+		#Set to X in field if keyword found
+		if index in StoreIndices:
+#			df.set_value(index, column, column)
+			df.at[index, column] = column
+
+#call on function to go through information fields with following groups of keywords
+searchinfo(Jewish_Keywords, 'Jewish Heritage')
+searchinfo(Resistance_Keywords, 'Resistance')
+searchinfo(Homosexual_Keywords, 'Homosexual')
+searchinfo(Health_Keywords, 'Health')
+searchinfo(Journalist_Keywords, 'Journalist')
+
+#df = df.drop(df.columns[1], axis=1)
+# Store the results to a CSV file
+df.to_csv('StolpersteineKreuzberg.csv')
